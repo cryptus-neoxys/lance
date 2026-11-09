@@ -16,16 +16,6 @@ use super::{Action, CompositeOperation, FieldRef, Ref, UserStep};
 use crate::format::pb_actions;
 use lance_core::{Error, Result};
 
-/// `data_change` is absent-means-true on the wire, so only the `false` case is
-/// written out.
-pub(super) fn data_change_to_wire(data_change: bool) -> Option<bool> {
-    (!data_change).then_some(false)
-}
-
-pub(super) fn data_change_from_wire(data_change: Option<bool>) -> bool {
-    data_change.unwrap_or(true)
-}
-
 pub(super) fn required<T>(value: Option<T>, what: &str) -> Result<T> {
     value.ok_or_else(|| Error::invalid_input(format!("{what} is required but was not set")))
 }
@@ -285,15 +275,22 @@ mod tests {
     }
 
     #[test]
-    fn test_data_change_is_absent_when_true() {
-        // Absent means "real change" on the wire, so the common case costs no
-        // bytes and an old field-less writer is read correctly.
+    fn test_omitted_data_unchanged_reads_as_a_data_change() {
+        // The wire default is the conservative reading: a writer that omits the
+        // flag claims a data change, and the common case costs no bytes.
         let message = pb_actions::RemoveFragment::from(&RemoveFragment {
             fragment: Ref::Committed(1),
             data_change: true,
         });
-        assert_eq!(message.data_change, None);
+        assert!(!message.data_unchanged);
         assert!(RemoveFragment::try_from(message).unwrap().data_change);
+
+        let rearrangement = pb_actions::RemoveFragment::from(&RemoveFragment {
+            fragment: Ref::Committed(1),
+            data_change: false,
+        });
+        assert!(rearrangement.data_unchanged);
+        assert!(!RemoveFragment::try_from(rearrangement).unwrap().data_change);
     }
 
     #[test]

@@ -4,7 +4,7 @@
 //! Tombstone the data-file binding of committed fields within one fragment.
 
 use super::apply::{ApplyState, TOMBSTONED_FIELD};
-use super::proto::{data_change_from_wire, data_change_to_wire, required};
+use super::proto::required;
 use super::{FieldRef, Footprint, Ref};
 use crate::format::pb_actions;
 use lance_core::deepsize::DeepSizeOf;
@@ -99,7 +99,7 @@ impl From<&TombstoneFieldData> for pb_actions::TombstoneFieldData {
         Self {
             fragment: Some(value.fragment.into()),
             field_ids: value.field_ids.iter().map(|id| (*id).into()).collect(),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
         }
     }
 }
@@ -115,7 +115,7 @@ impl TryFrom<pb_actions::TombstoneFieldData> for TombstoneFieldData {
                 .into_iter()
                 .map(FieldRef::try_from)
                 .collect::<Result<Vec<_>>>()?,
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
         })
     }
 }

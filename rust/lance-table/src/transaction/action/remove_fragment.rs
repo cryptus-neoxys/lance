@@ -4,7 +4,7 @@
 //! Remove a fragment entirely.
 
 use super::apply::ApplyState;
-use super::proto::{data_change_from_wire, data_change_to_wire, required};
+use super::proto::required;
 use super::{Footprint, Ref};
 use crate::format::pb_actions;
 use lance_core::deepsize::DeepSizeOf;
@@ -47,7 +47,7 @@ impl From<&RemoveFragment> for pb_actions::RemoveFragment {
     fn from(value: &RemoveFragment) -> Self {
         Self {
             fragment: Some(value.fragment.into()),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
         }
     }
 }
@@ -58,7 +58,7 @@ impl TryFrom<pb_actions::RemoveFragment> for RemoveFragment {
     fn try_from(message: pb_actions::RemoveFragment) -> Result<Self> {
         Ok(Self {
             fragment: required(message.fragment, "RemoveFragment.fragment")?.try_into()?,
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
         })
     }
 }

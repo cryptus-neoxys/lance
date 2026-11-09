@@ -4,7 +4,7 @@
 //! Add a data file to a fragment.
 
 use super::apply::ApplyState;
-use super::proto::{data_change_from_wire, data_change_to_wire, required};
+use super::proto::required;
 use super::{FieldRef, Footprint, Ref};
 use crate::format::{DataFile, pb, pb_actions};
 use lance_core::deepsize::DeepSizeOf;
@@ -183,7 +183,7 @@ impl From<&AddDataFile> for pb_actions::AddDataFile {
             fragment: Some(value.fragment.into()),
             file: Some(pb::DataFile::from(&value.file)),
             field_ids: value.field_ids.iter().map(|id| (*id).into()).collect(),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
             base: value.base.map(Into::into),
         }
     }
@@ -201,7 +201,7 @@ impl TryFrom<pb_actions::AddDataFile> for AddDataFile {
                 .into_iter()
                 .map(FieldRef::try_from)
                 .collect::<Result<Vec<_>>>()?,
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
             base: message.base.map(Ref::try_from).transpose()?,
         })
     }

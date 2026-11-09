@@ -4,7 +4,7 @@
 //! Add a new, empty fragment.
 
 use super::apply::ApplyState;
-use super::proto::{data_change_from_wire, data_change_to_wire, required};
+use super::proto::required;
 use super::{Coordinate, Footprint, Ref};
 use crate::format::{Fragment, RowIdMeta, pb, pb_actions};
 use crate::rowids::read_row_ids;
@@ -186,7 +186,7 @@ impl From<&AddFragment> for pb_actions::AddFragment {
                         )
                     }
                 }),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
         }
     }
 }
@@ -226,7 +226,7 @@ impl TryFrom<pb_actions::AddFragment> for AddFragment {
                     }
                 }
             }),
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
         })
     }
 }

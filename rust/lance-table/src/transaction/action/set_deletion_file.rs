@@ -4,7 +4,6 @@
 //! Set (replace) a fragment's deletion file.
 
 use super::apply::ApplyState;
-use super::proto::{data_change_from_wire, data_change_to_wire};
 use super::{Coordinate, Footprint, Ref};
 use crate::format::{DeletionFile, pb, pb_actions};
 use lance_core::deepsize::DeepSizeOf;
@@ -87,7 +86,7 @@ impl From<&SetDeletionFile> for pb_actions::SetDeletionFile {
         Self {
             fragment: value.fragment,
             deletion_file: value.deletion_file.as_ref().map(pb::DeletionFile::from),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
             base: value.base.map(Into::into),
         }
     }
@@ -103,7 +102,7 @@ impl TryFrom<pb_actions::SetDeletionFile> for SetDeletionFile {
                 .deletion_file
                 .map(DeletionFile::try_from)
                 .transpose()?,
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
             base: message.base.map(Ref::try_from).transpose()?,
         })
     }
