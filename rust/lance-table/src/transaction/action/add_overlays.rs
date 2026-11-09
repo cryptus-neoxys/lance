@@ -4,7 +4,7 @@
 //! Append overlay files to a fragment.
 
 use super::apply::ApplyState;
-use super::proto::{data_change_from_wire, data_change_to_wire, required};
+use super::proto::required;
 use super::{FieldRef, Footprint, Ref};
 use crate::format::overlay::DataOverlayFile;
 use crate::format::pb;
@@ -177,7 +177,7 @@ impl From<&AddOverlays> for pb_actions::AddOverlays {
                 .iter()
                 .map(pb::DataOverlayFile::from)
                 .collect(),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
         }
     }
 }
@@ -193,7 +193,7 @@ impl TryFrom<pb_actions::AddOverlays> for AddOverlays {
                 .into_iter()
                 .map(DataOverlayFile::try_from)
                 .collect::<Result<Vec<_>>>()?,
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
         })
     }
 }
