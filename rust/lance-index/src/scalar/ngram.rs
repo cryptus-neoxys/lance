@@ -1936,6 +1936,7 @@ impl NGramIndexBuilder {
 #[derive(Debug, DeepSizeOf)]
 struct NGramIndexState {
     tokens: Arc<HashMap<u32, u32>>,
+    results_are_row_addresses: bool,
 }
 
 impl NGramIndexState {
@@ -1946,6 +1947,7 @@ impl NGramIndexState {
             .ok_or_else(|| Error::internal("NGram cache received a non-NGram index"))?;
         Ok(Self {
             tokens: index.tokens.clone(),
+            results_are_row_addresses: index.results_are_row_addresses,
         })
     }
 
@@ -1967,6 +1969,7 @@ impl NGramIndexState {
             tokenizer: NGRAM_TOKENIZER.clone(),
             io_parallelism: store.io_parallelism(),
             store,
+            results_are_row_addresses: self.results_are_row_addresses,
         }))
     }
 }
