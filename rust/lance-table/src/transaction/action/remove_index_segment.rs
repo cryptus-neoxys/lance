@@ -4,7 +4,7 @@
 //! Remove an index segment.
 
 use super::apply::{ApplyState, reject_frag_reuse_history};
-use super::proto::{data_change_from_wire, data_change_to_wire, non_empty, required};
+use super::proto::{non_empty, required};
 use super::{Coordinate, Footprint};
 use crate::format::pb_actions;
 use lance_core::deepsize::{Context, DeepSizeOf};
@@ -62,7 +62,7 @@ impl From<&RemoveIndexSegment> for pb_actions::RemoveIndexSegment {
         Self {
             uuid: Some((&value.uuid).into()),
             name: value.name.clone(),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
         }
     }
 }
@@ -74,7 +74,7 @@ impl TryFrom<pb_actions::RemoveIndexSegment> for RemoveIndexSegment {
         Ok(Self {
             uuid: Uuid::try_from(&required(message.uuid, "RemoveIndexSegment.uuid")?)?,
             name: non_empty(message.name, "RemoveIndexSegment.name")?,
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
         })
     }
 }

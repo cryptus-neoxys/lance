@@ -5,7 +5,7 @@
 
 use super::apply::{ApplyState, reject_frag_reuse_history};
 use super::footprint::IndexIdentity;
-use super::proto::{data_change_from_wire, data_change_to_wire, non_empty, required};
+use super::proto::{non_empty, required};
 use super::{FieldRef, Footprint, Ref};
 use crate::format::{IndexFile, IndexMetadata, pb, pb_actions};
 use crate::system_index::mem_wal::MEM_WAL_INDEX_NAME;
@@ -350,7 +350,7 @@ impl From<&AddIndexSegment> for pb_actions::AddIndexSegment {
                     file_metadata_size_bytes: file.file_metadata_size_bytes.map_or(0, NonZero::get),
                 })
                 .collect(),
-            data_change: data_change_to_wire(value.data_change),
+            data_unchanged: !value.data_change,
             base: value.base.map(pb_actions::Ref::from),
             created_at: value
                 .created_at
@@ -416,7 +416,7 @@ impl TryFrom<pb_actions::AddIndexSegment> for AddIndexSegment {
             base: message.base.map(Ref::try_from).transpose()?,
             created_at,
             dataset_version: message.dataset_version,
-            data_change: data_change_from_wire(message.data_change),
+            data_change: !message.data_unchanged,
         })
     }
 }

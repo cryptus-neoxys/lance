@@ -389,7 +389,7 @@ mod tests {
         action: Some(pb_actions::action::Action::RemoveIndexSegment(pb_actions::RemoveIndexSegment {
             uuid: Some((&Uuid::from_u128(1)).into()),
             name: String::new(),
-            data_change: None,
+            data_unchanged: false,
         })),
     }, "RemoveIndexSegment.name")]
     #[case::coverage(pb_actions::Action {
