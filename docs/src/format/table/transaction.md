@@ -53,6 +53,26 @@ When concurrent writers conflict, the system loads transaction files to detect c
 If the atomic commit fails, the process retries with updated transaction state.
 For detailed conflict detection and resolution mechanisms, see the [Conflict Resolution](#conflict-resolution) section.
 
+### Validation
+
+Before writing a manifest, a writer validates the manifest its transaction
+would produce. These checks apply to every transaction, whether it names one of
+the operations below or carries a `CompositeOperation`. A transaction that
+fails one is rejected rather than committed, and a retry validates again
+against the version it rebased onto.
+
+- **Required fields have data.** A field is required when it and all of its
+  ancestors are non-nullable. Every fragment the transaction adds, or whose
+  data files it changes, must store data for each required field; a fragment
+  without it would read the field back as nulls. When the transaction makes a
+  field required, by adding it as non-nullable or by making it non-nullable,
+  every fragment is checked.
+- **Every data file stores at least one field.**
+- **Fragment IDs are unique** within the manifest.
+- **Field IDs follow the allocation rules.** When the manifest sets
+  `max_allocated_field_id`, every field ID it references must satisfy the
+  [non-reusable field ID rules](index.md#manifest).
+
 ## Transaction Types
 
 The authoritative specification for transaction types is defined in [`protos/transaction/`](https://github.com/lancedb/lance/tree/main/protos/transaction).
@@ -659,17 +679,6 @@ unrelated object in the meantime.
 
 The full action vocabulary and the reasoning behind its shape are defined in
 `protos/transaction/actions.proto`.
-
-One vocabulary detail is a format contract rather than an implementation
-choice. `AddIndexSegment.fields` names only the columns the segment is keyed
-on, and `covering_fields` is an independent declaration of the columns whose
-values it carries, so the segment's dependency set is the union of the two.
-This is the contract an index action targets, not the legacy one where
-`IndexMetadata.fields` means keyed columns followed by carried columns. A
-declaration whose two lists overlap can only be represented by a manifest
-declaring `FLAG_INDEPENDENT_COVERING_FIELDS`; until a release implements that
-flag, apply rejects the overlapping form and lowers a disjoint one to the
-legacy subset representation.
 
 Actions apply in order, with one exception: `ReserveFragmentIds` and
 `ReserveRowIds` are summed and taken after the operation's own mints, wherever
