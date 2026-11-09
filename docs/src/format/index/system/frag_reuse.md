@@ -211,10 +211,9 @@ writer [feature flags](../../table/versioning.md#current-feature-flags) to guard
 whatever the FRI index version. A tagged history on such a table sets it alongside
 `FLAG_FRAGMENT_REUSE_INDEX`.
 
-FRI translates row addresses, so it applies only to indices that store row addresses. Tagged
-histories (`index_version >= 1`) are allowed on tables with stable row IDs, but an index that
-stores stable row IDs must not coexist with a tagged entry: writers must refuse to record a
-transition while such an index exists, and to add such an index while a tagged entry exists.
+FRI translates row addresses, so it applies only to indices that store row addresses. FRIs are allowed on tables with stable row IDs, but an index that
+stores stable row IDs must not coexist with an FRI entry: writers must refuse to record a
+transition while such an index exists, and to add such an index while an FRI entry exists.
 
 ## Impacts
 

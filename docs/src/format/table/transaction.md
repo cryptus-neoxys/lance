@@ -657,12 +657,6 @@ an earlier commit reserved. Apply rejects a committed fragment, field, or base
 id above the mark, since a concurrent commit may have minted it for an
 unrelated object in the meantime.
 
-Every fragment must store data for each required field, one that is
-non-nullable and has only non-nullable ancestors; a fragment without it would
-read the field back as nulls. Apply checks each fragment whose data files the
-operation sets. When the operation makes a field required, by adding it as
-non-nullable or by making it non-nullable, apply checks every fragment.
-
 The full action vocabulary and the reasoning behind its shape are defined in
 `protos/transaction/actions.proto`.
 
