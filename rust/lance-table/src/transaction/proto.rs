@@ -969,7 +969,6 @@ mod tests {
                                         kind: Some(pb_actions::r#ref::Kind::Local(0)),
                                     }),
                                     physical_rows: 1,
-                                    data_change: Some(true),
                                     ..Default::default()
                                 },
                             )),

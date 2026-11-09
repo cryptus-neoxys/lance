@@ -687,18 +687,19 @@ this has no other visible effect within the operation, and a fragment can claim
 a reserved id only from an earlier commit's reservation. `ResetTable` discards
 objects but never rewinds the id counters.
 
-`data_change` is per action, and absent means true. `false` asserts the action changes no row's
-values: the rows it adds, removes, or rebinds are the same logical rows with
-the same values before and after, as when compaction moves rows or a column
-file is re-encoded. Change-data-capture readers emit rows only from
-`data_change = true` actions, and one operation may mix both.
+`data_unchanged` is per action and defaults to false. `true` asserts the action
+changes no row's values: the rows it adds, removes, or rebinds are the same
+logical rows with the same values before and after, as when compaction moves
+rows or a column file is re-encoded. Change-data-capture readers emit rows only
+from actions where it is false, and one operation may mix both. A writer that
+omits it claims a data change, which is the conservative reading.
 
-On a `TombstoneFieldData`, the flag means what `DataReplacement.data_change`
-means. A tombstone that changes data tombstones the fields' entries in the
+On a `TombstoneFieldData`, the flag is the inverse of
+`DataReplacement.data_change`. A tombstone that changes data tombstones the fields' entries in the
 fragment's overlays, since new base values supersede them, and withdraws every
-index on those fields from the fragment. A tombstone with `data_change` false
+index on those fields from the fragment. A tombstone with `data_unchanged` true
 is one half of a re-encode: the same operation re-binds every tombstoned field
-in that fragment with an `AddDataFile` that also has `data_change` false and
+in that fragment with an `AddDataFile` that also has `data_unchanged` true and
 holds the same base values (overlays not applied) for every physical row. No
 value a reader sees changes, so overlays keep shadowing the base, index
 coverage is kept, and no row's last-updated-at version moves. Nor does it count
@@ -706,9 +707,9 @@ as writing values against a concurrent overlay of those fields, a concurrent
 index build over them, or a concurrent change that makes one of them required.
 It does count as a write against `AssertCellsUnchanged` and `AssertUniqueKeys`:
 apply cannot verify that the values are unchanged, and those assertions guard
-correctness. Apply rejects a `false` tombstone whose fields are not all
-re-bound that way, and an `AddDataFile` whose `data_change` differs from that
-of the tombstone it re-binds.
+correctness. Apply rejects an unchanged tombstone whose fields are not all
+re-bound that way, and an `AddDataFile` whose `data_unchanged` differs from
+that of the tombstone it re-binds.
 
 ### Fragment Reuse History
 
@@ -732,7 +733,7 @@ physical rows and no deleted rows).
 Apply validates the transition without reading any file, and rejects it unless:
 
 - every source is removed in the same operation by a `RemoveFragment` with
-  `data_change` false;
+  `data_unchanged` true;
 - every destination is added in the same operation by an `AddFragment`, under a
   local or a reserved committed id, and has no deletion file;
 - each source's surviving-row count in the mapping equals its physical rows
@@ -775,7 +776,7 @@ from one of its sources, conflict.
 An `AddIndexSegment` requires the data it covers, and so does an
 `AdjustIndexCoverage` for the fragments it adds: a concurrent commit that
 replaces those fields' values in place (an `AddDataFile` or a
-`TombstoneFieldData` with `data_change` true, or an `AlterField` of one of the
+`TombstoneFieldData` with `data_unchanged` false, or an `AlterField` of one of the
 fields) conflicts with it, because a reader cannot tell from the metadata that
 the indexed values changed. Removing a whole fragment does not conflict with
 that requirement. Like a deletion or an overlay, a removal is visible in the
