@@ -4106,6 +4106,76 @@ mod tests {
         );
     }
 
+    async fn read_file_with_out_of_bounds_miniblock_offset() -> lance_core::Error {
+        use arrow_array::StringArray;
+
+        let arrow_schema = Arc::new(ArrowSchema::new(vec![Field::new(
+            "strings",
+            DataType::Utf8,
+            false,
+        )]));
+        let batch = RecordBatch::try_new(
+            arrow_schema,
+            vec![Arc::new(StringArray::from(vec!["alpha", "beta", "gamma"]))],
+        )
+        .unwrap();
+
+        let chunk_offsets_pattern = [16_i32, 21, 25, 30]
+            .iter()
+            .flat_map(|value| value.to_le_bytes())
+            .collect::<Vec<u8>>();
+        read_file_with_mutated_bytes(
+            LanceFileVersion::V2_1,
+            batch,
+            &chunk_offsets_pattern,
+            12,
+            &100_000_i32.to_le_bytes(),
+        )
+        .await
+        .expect_err("an out-of-bounds chunk offset must fail the read")
+    }
+
+    #[tokio::test]
+    async fn test_decode_error_includes_column_and_cause_without_file_wrapper() {
+        let error = read_file_with_out_of_bounds_miniblock_offset().await;
+
+        assert!(
+            matches!(error, lance_core::Error::CorruptFile { .. }),
+            "expected CorruptFile, got: {error}"
+        );
+        let display = error.to_string();
+        assert!(
+            display.contains("failed to decode column 'strings' (id 0)"),
+            "expected column context, got: {display}"
+        );
+        assert!(
+            display.contains("out of bounds"),
+            "expected the underlying cause, got: {display}"
+        );
+        assert!(
+            !display.contains("failed to read file"),
+            "file-level wrapping must not be restored, got: {display}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_decode_error_source_chain_reaches_underlying_cause() {
+        let error = read_file_with_out_of_bounds_miniblock_offset().await;
+
+        let mut messages = vec![error.to_string()];
+        let mut source = std::error::Error::source(&error);
+        while let Some(cause) = source {
+            messages.push(cause.to_string());
+            source = cause.source();
+        }
+        assert!(
+            messages
+                .iter()
+                .any(|message| message.contains("out of bounds")),
+            "source chain should expose the decode cause: {messages:?}"
+        );
+    }
+
     #[tokio::test]
     async fn test_read_legacy_wrapped_bitpacked_levels() {
         use arrow_array::{Array, Float16Array, Int64Array, LargeListArray};
